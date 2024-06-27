@@ -3,19 +3,31 @@ package calculation
 import (
 	"fmt"
 	"github.com/wlachs/wstonks/pkg/asset"
-	"github.com/wlachs/wstonks/pkg/transaction"
 	"math/big"
 )
 
-// WorthContext holding data required for calculating asset worth.
-type WorthContext struct {
-	AssetContext       *asset.Context
-	TransactionContext *transaction.Context
+// GetAssetWorthMap calculates the current worth of all quantities contained in the transaction.Context with the help of the live asset values
+// retrieved from the asset.Context and maps the quantities to their corresponding current worth.
+func (ctx *Context) GetAssetWorthMap() (map[*asset.Asset]*big.Rat, error) {
+	assetWorthMap, err := ctx.GetAssetKeyWorthMap()
+	if err != nil {
+		return nil, err
+	}
+
+	m := map[*asset.Asset]*big.Rat{}
+	assetCtx := ctx.AssetContext
+	assetMap := assetCtx.GetAssetKeyMap()
+
+	for a, worth := range assetWorthMap {
+		m[assetMap[a]] = worth
+	}
+
+	return m, nil
 }
 
-// GetAssetWorthMap calculates the current worth of all assets contained in the transaction.Context with the help of the live asset values
-// retrieved from the asset.Context and maps the assets to their corresponding current worth.
-func GetAssetWorthMap(ctx WorthContext) (map[*asset.Asset]big.Rat, error) {
+// GetAssetKeyWorthMap calculates the current worth of all quantities contained in the transaction.Context with the help of the live asset
+// values retrieved from the asset.Context and maps the quantities to their corresponding current worth.
+func (ctx *Context) GetAssetKeyWorthMap() (map[string]*big.Rat, error) {
 	assetCtx := ctx.AssetContext
 	txCtx := ctx.TransactionContext
 
@@ -23,10 +35,9 @@ func GetAssetWorthMap(ctx WorthContext) (map[*asset.Asset]big.Rat, error) {
 		return nil, fmt.Errorf("asset or transaction context is missing")
 	}
 
-	assetTxMap := transaction.GetAssetKeyMap(*txCtx)
-	assetPriceMap := asset.GetAssetKeyPriceMap(*assetCtx)
-	assetMap := asset.GetAssetKeyMap(*assetCtx)
-	m := map[*asset.Asset]big.Rat{}
+	assetTxMap := txCtx.GetAssetKeyMap()
+	assetPriceMap := assetCtx.GetAssetKeyPriceMap()
+	m := map[string]*big.Rat{}
 
 	for a, quantity := range assetTxMap {
 		up, ok := assetPriceMap[a]
@@ -34,32 +45,32 @@ func GetAssetWorthMap(ctx WorthContext) (map[*asset.Asset]big.Rat, error) {
 			return nil, fmt.Errorf("no unit price found for asset %s", a)
 		}
 
-		unitPrice := big.NewRat(0, 1).Set(&up)
-		m[assetMap[a]] = *unitPrice.Mul(unitPrice, &quantity)
+		unitPrice := big.NewRat(0, 1).Set(up)
+		m[a] = unitPrice.Mul(unitPrice, quantity)
 	}
 
 	return m, nil
 }
 
-// GetAssetWorth calculates the current worth of all assets contained in the transaction.Context with the help of the live asset values
+// GetAssetWorth calculates the current worth of all quantities contained in the transaction.Context with the help of the live asset values
 // retrieved from the asset.Context.
-func GetAssetWorth(ctx WorthContext) (big.Rat, error) {
+func (ctx *Context) GetAssetWorth() (*big.Rat, error) {
 	assetCtx := ctx.AssetContext
 	txCtx := ctx.TransactionContext
 
 	if assetCtx == nil || txCtx == nil {
-		return big.Rat{}, fmt.Errorf("asset or transaction context is missing")
+		return nil, fmt.Errorf("asset or transaction context is missing")
 	}
 
-	m, err := GetAssetWorthMap(ctx)
+	m, err := ctx.GetAssetWorthMap()
 	if err != nil {
-		return big.Rat{}, err
+		return nil, err
 	}
 
 	worth := big.NewRat(0, 1)
 	for _, w := range m {
-		worth.Add(worth, &w)
+		worth.Add(worth, w)
 	}
 
-	return *worth, nil
+	return worth, nil
 }

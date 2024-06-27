@@ -10,7 +10,7 @@ import (
 	"os"
 )
 
-// main example function for calculating live asset worth
+// main example function for calculating asset yield
 func main() {
 	if len(os.Args) < 3 {
 		log.Fatalln("missing file path arg(s)")
@@ -39,21 +39,13 @@ func main() {
 		TransactionContext: &txCtx,
 	}
 
-	worthPerAsset, err := worthCtx.GetAssetWorthMap()
+	yieldPerAsset, err := worthCtx.GetAssetYieldMap()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	for a, assetWorth := range worthPerAsset {
-		w, _ := assetWorth.Float32()
+	for a, assetYield := range yieldPerAsset {
+		w, _ := assetYield.Float32()
 		log.Printf("%s: %f\n", a.Id, w)
 	}
-
-	worth, err := worthCtx.GetAssetWorth()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	w, _ := worth.Float32()
-	log.Println("Sum:", w)
 }

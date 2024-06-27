@@ -7,7 +7,7 @@ import (
 
 // Validate verifies that the Context is in a valid state.
 func (ctx *Context) Validate() error {
-	summary := GetAssetMap(*ctx)
+	summary := ctx.GetAssetMap()
 
 	for asset, quantity := range summary {
 		if quantity.Cmp(big.NewRat(0, 1)) == -1 {

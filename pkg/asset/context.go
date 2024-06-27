@@ -51,7 +51,7 @@ func (ctx *Context) addAssetInternal(asset Asset, validate bool) error {
 	return nil
 }
 
-// updateAssets adds the Asset to the assets in the Context.
+// updateAssets adds the Asset to the quantities in the Context.
 func updateAssets(ctx *Context, asset Asset) error {
 	if asset.Id == "" {
 		return fmt.Errorf("missing asset ID %v", asset)

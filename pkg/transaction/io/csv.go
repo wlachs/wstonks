@@ -57,7 +57,7 @@ func readCsvRow(row []string) (transaction.Tx, error) {
 		return transaction.Tx{}, err
 	}
 
-	// Asset ID
+	// TxAsset ID
 	assetId, err := parseAssetId(row[1])
 	if err != nil {
 		return transaction.Tx{}, err
@@ -84,7 +84,7 @@ func readCsvRow(row []string) (transaction.Tx, error) {
 	return transaction.Tx{
 		Position: transaction.Position{
 			Timestamp: ts,
-			Asset:     &transaction.Asset{Id: assetId},
+			Asset:     &transaction.TxAsset{Id: assetId},
 			Quantity:  quantity,
 			UnitPrice: unitPrice,
 		},

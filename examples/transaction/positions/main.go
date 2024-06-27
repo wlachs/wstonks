@@ -9,7 +9,7 @@ import (
 
 // pos is a readable position struct
 type pos struct {
-	timestamp int64
+	timestamp string
 	quantity  float32
 	unitPrice float32
 }
@@ -29,14 +29,14 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	assets := transaction.GetAssetPositionSliceMap(ctx)
+	assets := ctx.GetAssetPositionSliceMap()
 	for asset, positions := range assets {
 		ps := make([]pos, 0, len(positions))
 		for _, position := range positions {
 			qty, _ := position.Quantity.Float32()
 			up, _ := position.UnitPrice.Float32()
 			p := pos{
-				timestamp: position.Timestamp.UnixMilli(),
+				timestamp: position.Timestamp.String(),
 				quantity:  qty,
 				unitPrice: up,
 			}

@@ -22,7 +22,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	assets := transaction.GetAssetMap(ctx)
+	assets := ctx.GetAssetMap()
 	for asset, quantity := range assets {
 		qty, _ := quantity.Float32()
 		log.Printf("%s: %f\n", asset.Id, qty)

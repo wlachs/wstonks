@@ -9,11 +9,11 @@ import (
 // Context holding historical trade and asset data.
 type Context struct {
 	Transactions []*Tx
-	Assets       []*Asset
+	Assets       []*TxAsset
 }
 
 // AddTransactions adds a slice of Tx objects to the Context.
-// The Asset data is dynamically filled based on the other transactions in the Context.
+// The TxAsset data is dynamically filled based on the other transactions in the Context.
 func (ctx *Context) AddTransactions(transactions []Tx) error {
 	var err error
 	for _, t := range transactions {
@@ -32,7 +32,7 @@ func (ctx *Context) AddTransactions(transactions []Tx) error {
 }
 
 // AddTransaction adds a Tx to the Context.
-// The Asset is automatically created the first time it is seen in a model.Tx.
+// The TxAsset is automatically created the first time it is seen in a model.Tx.
 func (ctx *Context) AddTransaction(transaction Tx) error {
 	return ctx.addTransactionInternal(transaction, true)
 }
@@ -57,14 +57,14 @@ func (ctx *Context) addTransactionInternal(transaction Tx, validate bool) error 
 	return nil
 }
 
-// updateAssets adds the Asset of the Tx object to the assets in the Context.
+// updateAssets adds the TxAsset of the Tx object to the quantities in the Context.
 func updateAssets(ctx *Context, transaction *Tx) error {
 	asset := transaction.Asset
 	if asset == nil || asset.Id == "" {
 		return fmt.Errorf("missing asset for transaction %v", transaction)
 	}
 
-	i := slices.IndexFunc(ctx.Assets, func(a *Asset) bool {
+	i := slices.IndexFunc(ctx.Assets, func(a *TxAsset) bool {
 		return a.Id == asset.Id
 	})
 
@@ -83,7 +83,7 @@ func updateTransactions(ctx *Context, transaction *Tx) error {
 	}
 
 	// update transaction asset pointer
-	i := slices.IndexFunc(ctx.Assets, func(a *Asset) bool {
+	i := slices.IndexFunc(ctx.Assets, func(a *TxAsset) bool {
 		return a.Id == transaction.Asset.Id
 	})
 	transaction.Asset = ctx.Assets[i]

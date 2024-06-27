@@ -6,10 +6,10 @@ import (
 )
 
 // ParseRat converts the number string to big.Rat
-func ParseRat(s string) (big.Rat, error) {
-	rat := big.Rat{}
+func ParseRat(s string) (*big.Rat, error) {
+	rat := big.NewRat(0, 1)
 	if _, ok := rat.SetString(s); !ok {
-		return big.Rat{}, fmt.Errorf("failed to parse numeric string %s", s)
+		return nil, fmt.Errorf("failed to parse numeric string %s", s)
 	}
 
 	return rat, nil
