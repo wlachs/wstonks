@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"math/big"
 	"slices"
 )
 
@@ -35,20 +36,30 @@ func (ctx *Context) GetAssetPositionSliceMap() map[*TxAsset][]Position {
 	return m
 }
 
-// subtractAssetPosition subtracts the position quantity from the oldest position of the asset.
-func subtractAssetPosition(m map[*TxAsset][]Position, position Position) {
+// subtractAssetPosition subtracts the position quantity from the oldest position of the asset. Returns a slice containing the profits and
+// losses realized on each open position.
+func subtractAssetPosition(m map[*TxAsset][]Position, position Position) []*big.Rat {
 	asset := position.Asset
 
 	if len(m[asset]) == 0 {
-		return
+		return []*big.Rat{}
 	}
 	oldestPosition := &m[asset][0]
 
+	realized := big.NewRat(0, 1).Set(position.UnitPrice)
+	realized.Sub(realized, oldestPosition.UnitPrice)
+
 	if oldestPosition.Quantity.Cmp(position.Quantity) > 0 {
 		oldestPosition.Quantity.Sub(oldestPosition.Quantity, position.Quantity)
+
+		realized.Mul(realized, position.Quantity)
+		return []*big.Rat{realized}
+
 	} else {
 		position.Quantity.Sub(position.Quantity, oldestPosition.Quantity)
 		m[asset] = m[asset][1:]
-		subtractAssetPosition(m, position)
+
+		realized.Mul(realized, oldestPosition.Quantity)
+		return append(subtractAssetPosition(m, position), realized)
 	}
 }

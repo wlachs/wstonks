@@ -100,14 +100,3 @@ func validateDistribution(distribution map[*asset.Asset]*big.Rat) error {
 
 	return nil
 }
-
-// buyOnlyEntries checks if all entries in the adjustment map are positive
-func buyOnlyEntries(adjustment map[*asset.Asset]*big.Rat) bool {
-	zero := big.NewRat(0, 1)
-	for _, adj := range adjustment {
-		if adj.Cmp(zero) < 0 {
-			return false
-		}
-	}
-	return true
-}
