@@ -7,13 +7,6 @@ import (
 	"os"
 )
 
-// pos is a readable position struct
-type pos struct {
-	timestamp string
-	quantity  float32
-	unitPrice float32
-}
-
 // main example function for calculating realozed profits and losses
 func main() {
 	if len(os.Args) < 2 {

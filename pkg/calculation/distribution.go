@@ -20,15 +20,24 @@ func (ctx *Context) GetDistributionAdjustmentMapWithBudget(distribution map[*ass
 
 	globalWorth := big.NewRat(0, 1).Set(budget)
 	for a := range distribution {
-		globalWorth.Add(globalWorth, worthMap[a])
+		w, ok := worthMap[a]
+		if ok {
+			globalWorth.Add(globalWorth, w)
+		}
 	}
 
 	m := map[*asset.Asset]*big.Rat{}
 	zero := big.NewRat(0, 1)
 	for a, q := range distribution {
+		w, ok := worthMap[a]
+		if !ok {
+			w = big.NewRat(0, 1)
+		}
+
 		r := big.NewRat(0, 1).Set(globalWorth)
 		r.Mul(r, q)
-		r.Sub(r, worthMap[a])
+		r.Sub(r, w)
+
 		if r.Cmp(zero) != 0 {
 			m[a] = r
 		}
@@ -56,15 +65,23 @@ func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[
 
 	globalWorth := big.NewRat(0, 1)
 	for a := range distribution {
-		globalWorth.Add(globalWorth, worthMap[a])
+		w, ok := worthMap[a]
+		if ok {
+			globalWorth.Add(globalWorth, w)
+		}
 	}
 
 	var bestPerformer *asset.Asset
 	var bestPerformance *big.Rat
 	for a, d := range distribution {
+		worthDifference := big.NewRat(0, 1)
+		w, ok := worthMap[a]
+		if ok {
+			worthDifference.Set(w)
+		}
+
 		idealWorth := big.NewRat(0, 1).Set(globalWorth)
 		idealWorth.Mul(idealWorth, d)
-		worthDifference := big.NewRat(0, 1).Set(worthMap[a])
 		worthDifference.Sub(worthDifference, idealWorth)
 
 		if bestPerformance == nil || bestPerformance.Cmp(worthDifference) < 0 {
@@ -73,7 +90,11 @@ func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[
 		}
 	}
 
-	budget := big.NewRat(0, 1).Set(worthMap[bestPerformer])
+	budget, ok := worthMap[bestPerformer]
+	if !ok {
+		budget = big.NewRat(0, 1)
+	}
+
 	budget.Quo(budget, distribution[bestPerformer])
 	budget.Sub(budget, globalWorth)
 
