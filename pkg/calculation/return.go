@@ -6,9 +6,9 @@ import (
 	"math/big"
 )
 
-// GetAssetYieldMap calculates the current yield of all quantities contained in the transaction.Context with the help of the live asset values
-// retrieved from the asset.Context and maps the quantities to their corresponding current yield.
-func (ctx *Context) GetAssetYieldMap() (map[*asset.Asset]*big.Rat, error) {
+// GetAssetReturnMap calculates the current return on all quantities contained in the transaction.Context with the help of the live asset
+// values retrieved from the asset.Context and maps the quantities to their corresponding current return.
+func (ctx *Context) GetAssetReturnMap() (map[*asset.Asset]*big.Rat, error) {
 	assetCtx := ctx.AssetContext
 	txCtx := ctx.TransactionContext
 
@@ -27,10 +27,10 @@ func (ctx *Context) GetAssetYieldMap() (map[*asset.Asset]*big.Rat, error) {
 	for a, currentWorth := range assetWorthMap {
 		initialWorth, ok := assetInitialMap[a.Id]
 		if ok {
-			yield := big.NewRat(0, 1)
-			yield.Set(currentWorth)
-			yield.Sub(yield, initialWorth)
-			m[a] = yield
+			ret := big.NewRat(0, 1)
+			ret.Set(currentWorth)
+			ret.Sub(ret, initialWorth)
+			m[a] = ret
 		}
 	}
 
