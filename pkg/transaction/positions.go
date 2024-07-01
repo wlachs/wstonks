@@ -5,6 +5,15 @@ import (
 	"slices"
 )
 
+// GetReturnForUnitPrice calculates the difference between the initial value of the position and its current value.
+func (p Position) GetReturnForUnitPrice(unitPrice *big.Rat) *big.Rat {
+	diff := big.NewRat(0, 1).Set(unitPrice)
+	diff.Sub(diff, p.UnitPrice)
+	diff.Mul(diff, p.Quantity)
+
+	return diff
+}
+
 // GetAssetPositionSliceMap maps quantities to a chronologically ordered slice of positions.
 // Transactions are used as a basis: There are two scenarios, BUY and SELL. In case of a BUY transaction, the position is simply added to
 // the end of the position slice. In case of a SELL transaction however, the position quantity is subtracted from the oldest position.
@@ -15,18 +24,7 @@ func (ctx *Context) GetAssetPositionSliceMap() map[*TxAsset][]Position {
 	for i := range ctx.Assets {
 		asset := ctx.Assets[i]
 
-		// sort transactions according to timestamp
-		slices.SortFunc(asset.Transactions, func(a, b *Tx) int {
-			return a.Timestamp.Compare(b.Timestamp)
-		})
-
-		for _, transaction := range asset.Transactions {
-			if transaction.Type == BUY {
-				m[asset] = append(m[asset], transaction.Position)
-			} else if transaction.Type == SELL {
-				subtractAssetPosition(m, transaction.Position)
-			}
-		}
+		m[asset] = ctx.GetAssetPositions(asset)
 
 		if len(m[asset]) == 0 {
 			delete(m, asset)
@@ -36,15 +34,33 @@ func (ctx *Context) GetAssetPositionSliceMap() map[*TxAsset][]Position {
 	return m
 }
 
+// GetAssetPositions calculates the open positions for the given TxAsset.
+func (ctx *Context) GetAssetPositions(a *TxAsset) []Position {
+	var p []Position
+
+	// sort transactions according to timestamp
+	slices.SortFunc(a.Transactions, func(a, b *Tx) int {
+		return a.Timestamp.Compare(b.Timestamp)
+	})
+
+	for _, transaction := range a.Transactions {
+		if transaction.Type == BUY {
+			p = append(p, transaction.Position)
+		} else if transaction.Type == SELL {
+			p, _ = subtractAssetPosition(p, transaction.Position)
+		}
+	}
+
+	return p
+}
+
 // subtractAssetPosition subtracts the position quantity from the oldest position of the asset. Returns a slice containing the profits and
 // losses realized on each open position.
-func subtractAssetPosition(m map[*TxAsset][]Position, position Position) []*big.Rat {
-	asset := position.Asset
-
-	if len(m[asset]) == 0 {
-		return []*big.Rat{}
+func subtractAssetPosition(p []Position, position Position) ([]Position, []*big.Rat) {
+	if len(p) == 0 {
+		return p, []*big.Rat{}
 	}
-	oldestPosition := &m[asset][0]
+	oldestPosition := p[0]
 
 	realized := big.NewRat(0, 1).Set(position.UnitPrice)
 	realized.Sub(realized, oldestPosition.UnitPrice)
@@ -53,13 +69,14 @@ func subtractAssetPosition(m map[*TxAsset][]Position, position Position) []*big.
 		oldestPosition.Quantity.Sub(oldestPosition.Quantity, position.Quantity)
 
 		realized.Mul(realized, position.Quantity)
-		return []*big.Rat{realized}
+		return p, []*big.Rat{realized}
 
 	} else {
 		position.Quantity.Sub(position.Quantity, oldestPosition.Quantity)
-		m[asset] = m[asset][1:]
+		p = p[1:]
 
 		realized.Mul(realized, oldestPosition.Quantity)
-		return append(subtractAssetPosition(m, position), realized)
+		pp, r := subtractAssetPosition(p, position)
+		return pp, append(r, realized)
 	}
 }

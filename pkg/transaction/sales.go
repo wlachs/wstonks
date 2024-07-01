@@ -52,7 +52,7 @@ func (ctx *Context) getRealizedProfitsAndLosses() []*big.Rat {
 			if transaction.Type == BUY {
 				m[asset] = append(m[asset], transaction.Position)
 			} else if transaction.Type == SELL {
-				diffs := subtractAssetPosition(m, transaction.Position)
+				_, diffs := subtractAssetPosition(m[asset], transaction.Position)
 				profit = append(profit, diffs...)
 			} else if transaction.Type == DIVIDEND {
 				profit = append(profit, transaction.UnitPrice)
