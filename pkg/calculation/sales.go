@@ -6,39 +6,196 @@ import (
 	"github.com/wlachs/wstonks/pkg/transaction"
 	"math/big"
 	"slices"
+	"sort"
 )
 
 // GetSalesForReturn calculates how much and which positions should be sold in order to realize the given return.
-func (ctx *Context) GetSalesForReturn(r *big.Rat) (map[asset.Asset]*big.Rat, error) {
+func (ctx *Context) GetSalesForReturn(r *big.Rat) (map[*asset.Asset]*big.Rat, error) {
+	if r == nil {
+		return nil, fmt.Errorf("return shouldn't be nil")
+	}
+
 	assetCtx := ctx.AssetContext
 	if assetCtx == nil {
 		return nil, fmt.Errorf("asset context not set")
 	}
 
-	return ctx.GetSalesForReturnWithAssets(r, ctx.AssetContext.Assets)
+	return ctx.GetSalesForReturnForAssets(r, ctx.AssetContext.Assets)
 }
 
-// GetSalesForReturnWithAssets calculates how much and which positions should be sold in order to realize the given return.
-func (ctx *Context) GetSalesForReturnWithAssets(r *big.Rat, assets []asset.Asset) (map[asset.Asset]*big.Rat, error) {
-	return nil, nil
+// GetSalesForReturnForAssets calculates how much and which positions should be sold in order to realize the given return.
+func (ctx *Context) GetSalesForReturnForAssets(r *big.Rat, assets []asset.Asset) (map[*asset.Asset]*big.Rat, error) {
+	if r == nil {
+		return nil, fmt.Errorf("return shouldn't be nil")
+	}
+
+	profits, losses, err := ctx.GetMaxProfitAndLossForAssets(assets)
+	if err != nil {
+		return nil, err
+	}
+
+	zero := big.NewRat(0, 1)
+	rr := big.NewRat(0, 1).Set(r)
+
+	assetPtrSlice := make([]*asset.Asset, 0, len(assets))
+	for i := range assets {
+		assetPtrSlice = append(assetPtrSlice, &assets[i])
+	}
+
+	if r.Cmp(zero) < 0 {
+		return ctx.getSalesForLossWithAssets(rr, assetPtrSlice, losses)
+	} else {
+		return ctx.getSalesForProfitWithAssets(rr, assetPtrSlice, profits)
+	}
 }
 
-// GetMaxProfitAndLossForAssets calculates the maximum realizable profit and loss for each asset with live data.
-func (ctx *Context) GetMaxProfitAndLossForAssets() (map[*asset.Asset]*big.Rat, map[*asset.Asset]*big.Rat, error) {
+// getSalesForProfitWithAssets calculates how much of the given assets have to be sold to get the given profit
+func (ctx *Context) getSalesForProfitWithAssets(r *big.Rat, assets []*asset.Asset, profits map[*asset.Asset]*big.Rat) (map[*asset.Asset]*big.Rat, error) {
+	sort.Slice(assets, func(i, j int) bool {
+		return profits[assets[i]].Cmp(profits[assets[j]]) > 0
+	})
+	return ctx.sellForProfit(r, assets, profits)
+}
+
+// sellForProfit recursively iterates over the open asset positions and sells them until the desired profit is realized.
+func (ctx *Context) sellForProfit(r *big.Rat, assets []*asset.Asset, profits map[*asset.Asset]*big.Rat) (map[*asset.Asset]*big.Rat, error) {
+	if len(assets) == 0 {
+		return nil, fmt.Errorf("not enough assets to sell")
+	}
+
+	a := assets[0]
+	assets = assets[1:]
+	positions, err := ctx.TransactionContext.GetAssetKeyPositions(a.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	maxProfit := profits[a]
+	m := map[*asset.Asset]*big.Rat{}
+	m[a] = big.NewRat(0, 1)
+	diff := big.NewRat(0, 1)
+
+	for _, position := range positions {
+		ret := position.GetReturnForUnitPrice(a.UnitPrice)
+		d := big.NewRat(0, 1).Add(diff, ret)
+
+		if d.Cmp(r) >= 0 {
+			// (r - diff) / ret
+			tmp := big.NewRat(0, 1).Sub(r, diff)
+			tmp.Quo(tmp, ret)
+			tmp.Mul(tmp, position.Quantity)
+
+			m[a].Add(m[a], tmp)
+			return m, nil
+
+		} else {
+			diff.Add(diff, ret)
+			m[a].Add(m[a], position.Quantity)
+
+			if d.Cmp(maxProfit) == 0 {
+				r.Sub(r, d)
+
+				rest, e := ctx.sellForProfit(r, assets, profits)
+				if e != nil {
+					return nil, e
+				}
+
+				for k, v := range rest {
+					m[k] = v
+				}
+
+				return m, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("not enough positions the realize profit")
+}
+
+// getSalesForLossWithAssets calculates how much of the given assets have to be sold to get the given loss
+func (ctx *Context) getSalesForLossWithAssets(r *big.Rat, assets []*asset.Asset, losses map[*asset.Asset]*big.Rat) (map[*asset.Asset]*big.Rat, error) {
+	sort.Slice(assets, func(i, j int) bool {
+		return losses[assets[i]].Cmp(losses[assets[j]]) < 0
+	})
+	return ctx.sellForLoss(r, assets, losses)
+}
+
+// sellForLoss recursively iterates over the open asset positions and sells them until the desired loss is realized.
+func (ctx *Context) sellForLoss(r *big.Rat, assets []*asset.Asset, losses map[*asset.Asset]*big.Rat) (map[*asset.Asset]*big.Rat, error) {
+	if len(assets) == 0 {
+		return nil, fmt.Errorf("not enough assets to sell")
+	}
+
+	a := assets[0]
+	assets = assets[1:]
+	positions, err := ctx.TransactionContext.GetAssetKeyPositions(a.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	maxLoss := losses[a]
+	m := map[*asset.Asset]*big.Rat{}
+	m[a] = big.NewRat(0, 1)
+	diff := big.NewRat(0, 1)
+
+	for _, position := range positions {
+		ret := position.GetReturnForUnitPrice(a.UnitPrice)
+		d := big.NewRat(0, 1).Add(diff, ret)
+
+		if d.Cmp(r) <= 0 {
+			// (r - diff) / ret
+			tmp := big.NewRat(0, 1).Sub(r, diff)
+			tmp.Quo(tmp, ret)
+			tmp.Mul(tmp, position.Quantity)
+
+			m[a].Add(m[a], tmp)
+			return m, nil
+
+		} else {
+			diff.Add(diff, ret)
+			m[a].Add(m[a], position.Quantity)
+
+			if d.Cmp(maxLoss) == 0 {
+				r.Sub(r, d)
+
+				rest, e := ctx.sellForLoss(r, assets, losses)
+				if e != nil {
+					return nil, e
+				}
+
+				for k, v := range rest {
+					m[k] = v
+				}
+
+				return m, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("not enough positions the realize losses")
+}
+
+// GetMaxProfitAndLoss calculates the maximum realizable profit and loss for each asset with live data.
+func (ctx *Context) GetMaxProfitAndLoss() (map[*asset.Asset]*big.Rat, map[*asset.Asset]*big.Rat, error) {
 	assetCtx := ctx.AssetContext
 	if assetCtx == nil {
 		return nil, nil, fmt.Errorf("asset context not set")
 	}
 
+	return ctx.GetMaxProfitAndLossForAssets(assetCtx.Assets)
+}
+
+// GetMaxProfitAndLossForAssets calculates the maximum realizable profit and loss for each asset with live data.
+func (ctx *Context) GetMaxProfitAndLossForAssets(assets []asset.Asset) (map[*asset.Asset]*big.Rat, map[*asset.Asset]*big.Rat, error) {
 	profit := map[*asset.Asset]*big.Rat{}
 	loss := map[*asset.Asset]*big.Rat{}
-	for _, a := range assetCtx.Assets {
-		p, l, err := ctx.GetMaxProfitAndLossForAsset(a)
+	for i := range assets {
+		p, l, err := ctx.GetMaxProfitAndLossForAsset(assets[i])
 		if err != nil {
 			return nil, nil, err
 		}
-		profit[&a] = p
-		loss[&a] = l
+		profit[&assets[i]] = p
+		loss[&assets[i]] = l
 	}
 
 	return profit, loss, nil

@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"fmt"
 	"math/big"
 	"slices"
 )
@@ -79,4 +80,14 @@ func subtractAssetPosition(p []Position, position Position) ([]Position, []*big.
 		pp, r := subtractAssetPosition(p, position)
 		return pp, append(r, realized)
 	}
+}
+
+// GetAssetKeyPositions calculates the open positions for the given TxAsset key.
+func (ctx *Context) GetAssetKeyPositions(assetId string) ([]Position, error) {
+	for _, asset := range ctx.Assets {
+		if asset.Id == assetId {
+			return ctx.GetAssetPositions(asset), nil
+		}
+	}
+	return nil, fmt.Errorf("asset with key \"%s\" not found", assetId)
 }

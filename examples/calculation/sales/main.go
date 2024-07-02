@@ -7,6 +7,7 @@ import (
 	"github.com/wlachs/wstonks/pkg/transaction"
 	txio "github.com/wlachs/wstonks/pkg/transaction/io"
 	"log"
+	"math/big"
 	"os"
 )
 
@@ -39,7 +40,7 @@ func main() {
 		TransactionContext: &txCtx,
 	}
 
-	profits, losses, err := worthCtx.GetMaxProfitAndLossForAssets()
+	profits, losses, err := worthCtx.GetMaxProfitAndLoss()
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -47,6 +48,18 @@ func main() {
 	for a := range profits {
 		p, _ := profits[a].Float32()
 		l, _ := losses[a].Float32()
-		log.Printf("%s: %f - %f\n", a.Id, l, p)
+		log.Printf("%12s:\t%f\t-\t%f\n", a.Id, l, p)
+	}
+
+	log.Println("------------")
+
+	m, err := worthCtx.GetSalesForReturn(big.NewRat(-261, 1))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	for a, sell := range m {
+		s, _ := sell.Float32()
+		log.Printf("%12s:\t%f\n", a.Id, s)
 	}
 }
