@@ -109,7 +109,7 @@ func (ctx *Context) sellForProfit(r *big.Rat, assets []*asset.Asset, profits map
 		}
 	}
 
-	return nil, fmt.Errorf("not enough positions the realize profit")
+	return nil, fmt.Errorf("not enough positions to realize the profit")
 }
 
 // getSalesForLossWithAssets calculates how much of the given assets have to be sold to get the given loss
@@ -172,7 +172,7 @@ func (ctx *Context) sellForLoss(r *big.Rat, assets []*asset.Asset, losses map[*a
 		}
 	}
 
-	return nil, fmt.Errorf("not enough positions the realize losses")
+	return nil, fmt.Errorf("not enough positions to realize the losses")
 }
 
 // GetMaxProfitAndLoss calculates the maximum realizable profit and loss for each asset with live data.

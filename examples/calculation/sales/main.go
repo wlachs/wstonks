@@ -53,7 +53,7 @@ func main() {
 
 	log.Println("------------")
 
-	m, err := worthCtx.GetSalesForReturn(big.NewRat(-261, 1))
+	m, err := worthCtx.GetSalesForReturn(big.NewRat(400, 1))
 	if err != nil {
 		log.Fatalln(err)
 	}
