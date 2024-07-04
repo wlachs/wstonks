@@ -6,22 +6,27 @@ import (
 
 // GetAssetInitialWorthMap calculates the initial worth of every asset
 func (ctx *Context) GetAssetInitialWorthMap() map[*TxAsset]*big.Rat {
-	positions := ctx.GetAssetPositionSliceMap()
 	m := map[*TxAsset]*big.Rat{}
 
-	for a, pos := range positions {
-		worth := big.NewRat(0, 1)
-
-		for _, p := range pos {
-			w := big.NewRat(0, 1).Set(p.Quantity)
-			w.Mul(w, p.UnitPrice)
-			worth.Add(worth, w)
-		}
-
-		m[a] = worth
+	for _, a := range ctx.Assets {
+		m[a] = ctx.GetAssetInitialWorth(a)
 	}
 
 	return m
+}
+
+// GetAssetInitialWorth calculates the initial worth of the given asset
+func (ctx *Context) GetAssetInitialWorth(a *TxAsset) *big.Rat {
+	positions := ctx.GetAssetPositions(a)
+	worth := big.NewRat(0, 1)
+
+	for _, p := range positions {
+		w := big.NewRat(0, 1)
+		w.Mul(p.Quantity, p.UnitPrice)
+		worth.Add(worth, w)
+	}
+
+	return worth
 }
 
 // GetAssetKeyInitialWorthMap calculates the initial worth of every asset
