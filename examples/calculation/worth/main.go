@@ -54,6 +54,8 @@ func main() {
 		log.Fatalln(err)
 	}
 
+	log.Println("------------")
+
 	w, _ := worth.Float32()
 	log.Println("Sum:", w)
 }
