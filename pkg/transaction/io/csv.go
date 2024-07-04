@@ -54,31 +54,31 @@ func readCsvRow(row []string) (transaction.Tx, error) {
 	// Timestamp
 	ts, err := parseTimestamp(row[0])
 	if err != nil {
-		return transaction.Tx{}, err
+		return transaction.Tx{}, fmt.Errorf("failed to parse TS of row %v", row)
 	}
 
 	// TxAsset ID
 	assetId, err := parseAssetId(row[1])
 	if err != nil {
-		return transaction.Tx{}, err
+		return transaction.Tx{}, fmt.Errorf("failed to parse asset ID of row %v", row)
 	}
 
 	// Transaction type enum
 	tradeType, err := parseTradeType(row[2])
 	if err != nil {
-		return transaction.Tx{}, err
+		return transaction.Tx{}, fmt.Errorf("failed to parse trade type of row %v", row)
 	}
 
 	// Order quantity
 	quantity, err := ioutils.ParseRat(row[3])
 	if err != nil {
-		return transaction.Tx{}, err
+		return transaction.Tx{}, fmt.Errorf("failed to parse quantity of row %v", row)
 	}
 
 	// Unit price
 	unitPrice, err := ioutils.ParseRat(row[4])
 	if err != nil {
-		return transaction.Tx{}, err
+		return transaction.Tx{}, fmt.Errorf("failed to parse unit price of row %v", row)
 	}
 
 	return transaction.Tx{

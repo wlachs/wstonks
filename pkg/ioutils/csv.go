@@ -2,6 +2,7 @@ package ioutils
 
 import (
 	"encoding/csv"
+	"fmt"
 	"os"
 )
 
@@ -9,7 +10,7 @@ import (
 func ReadCsvFile(path string) ([][]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open file \"%s\"", path)
 	}
 
 	defer func(f *os.File) {
