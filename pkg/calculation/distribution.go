@@ -77,12 +77,11 @@ func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[
 		worthDifference := big.NewRat(0, 1)
 		w, ok := worthMap[a]
 		if ok {
-			worthDifference.Set(w)
+			worthDifference.Quo(w, globalWorth)
 		}
 
-		idealWorth := big.NewRat(0, 1).Set(globalWorth)
-		idealWorth.Mul(idealWorth, d)
-		worthDifference.Sub(worthDifference, idealWorth)
+		worthDifference.Sub(worthDifference, d)
+		worthDifference.Quo(worthDifference, d)
 
 		if bestPerformance == nil || bestPerformance.Cmp(worthDifference) < 0 {
 			bestPerformance = worthDifference
