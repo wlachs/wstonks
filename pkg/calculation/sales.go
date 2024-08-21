@@ -24,7 +24,7 @@ func (ctx *Context) GetSalesForReturn(r *big.Rat) (map[*asset.Asset]*big.Rat, er
 }
 
 // GetSalesForReturnForAssets calculates how much and which positions should be sold in order to realize the given return.
-func (ctx *Context) GetSalesForReturnForAssets(r *big.Rat, assets []asset.Asset) (map[*asset.Asset]*big.Rat, error) {
+func (ctx *Context) GetSalesForReturnForAssets(r *big.Rat, assets []*asset.Asset) (map[*asset.Asset]*big.Rat, error) {
 	if r == nil {
 		return nil, fmt.Errorf("return shouldn't be nil")
 	}
@@ -37,15 +37,10 @@ func (ctx *Context) GetSalesForReturnForAssets(r *big.Rat, assets []asset.Asset)
 	zero := big.NewRat(0, 1)
 	rr := big.NewRat(0, 1).Set(r)
 
-	assetPtrSlice := make([]*asset.Asset, 0, len(assets))
-	for i := range assets {
-		assetPtrSlice = append(assetPtrSlice, &assets[i])
-	}
-
 	if r.Cmp(zero) < 0 {
-		return ctx.getSalesForLossWithAssets(rr, assetPtrSlice, losses)
+		return ctx.getSalesForLossWithAssets(rr, assets, losses)
 	} else {
-		return ctx.getSalesForProfitWithAssets(rr, assetPtrSlice, profits)
+		return ctx.getSalesForProfitWithAssets(rr, assets, profits)
 	}
 }
 
@@ -186,7 +181,7 @@ func (ctx *Context) GetMaxProfitAndLoss() (map[*asset.Asset]*big.Rat, map[*asset
 }
 
 // GetMaxProfitAndLossForAssets calculates the maximum realizable profit and loss for each asset with live data.
-func (ctx *Context) GetMaxProfitAndLossForAssets(assets []asset.Asset) (map[*asset.Asset]*big.Rat, map[*asset.Asset]*big.Rat, error) {
+func (ctx *Context) GetMaxProfitAndLossForAssets(assets []*asset.Asset) (map[*asset.Asset]*big.Rat, map[*asset.Asset]*big.Rat, error) {
 	profit := map[*asset.Asset]*big.Rat{}
 	loss := map[*asset.Asset]*big.Rat{}
 	for i := range assets {
@@ -194,15 +189,15 @@ func (ctx *Context) GetMaxProfitAndLossForAssets(assets []asset.Asset) (map[*ass
 		if err != nil {
 			return nil, nil, err
 		}
-		profit[&assets[i]] = p
-		loss[&assets[i]] = l
+		profit[assets[i]] = p
+		loss[assets[i]] = l
 	}
 
 	return profit, loss, nil
 }
 
 // GetMaxProfitAndLossForAsset checks every open position of the asset and calculates the maximum realizable profit and loss.
-func (ctx *Context) GetMaxProfitAndLossForAsset(a asset.Asset) (*big.Rat, *big.Rat, error) {
+func (ctx *Context) GetMaxProfitAndLossForAsset(a *asset.Asset) (*big.Rat, *big.Rat, error) {
 	txCtx := ctx.TransactionContext
 	if txCtx == nil {
 		return nil, nil, fmt.Errorf("transaction context not set")

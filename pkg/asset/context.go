@@ -9,12 +9,12 @@ import (
 
 // Context holding Asset data
 type Context struct {
-	Assets []Asset
+	Assets []*Asset
 }
 
 // AddAssets adds a slice of Asset objects to the Context. If the asset can already be found in the Context, the price is updated to the
 // newly imported value.
-func (ctx *Context) AddAssets(assets []Asset) error {
+func (ctx *Context) AddAssets(assets []*Asset) error {
 	var err error
 	for _, t := range assets {
 		e := ctx.addAssetInternal(t, false)
@@ -32,13 +32,13 @@ func (ctx *Context) AddAssets(assets []Asset) error {
 }
 
 // AddAsset adds an Asset to the Context.
-func (ctx *Context) AddAsset(asset Asset) error {
+func (ctx *Context) AddAsset(asset *Asset) error {
 	return ctx.addAssetInternal(asset, true)
 }
 
 // addAssetInternal adds the Asset to the Context.
 // If the validate parameter is true, the Context will be validated after adding the Asset.
-func (ctx *Context) addAssetInternal(asset Asset, validate bool) error {
+func (ctx *Context) addAssetInternal(asset *Asset, validate bool) error {
 	err := updateAssets(ctx, asset)
 	if err != nil {
 		return err
@@ -52,12 +52,12 @@ func (ctx *Context) addAssetInternal(asset Asset, validate bool) error {
 }
 
 // updateAssets adds the Asset to the quantities in the Context.
-func updateAssets(ctx *Context, asset Asset) error {
+func updateAssets(ctx *Context, asset *Asset) error {
 	if asset.Id == "" {
 		return fmt.Errorf("missing asset ID %v", asset)
 	}
 
-	i := slices.IndexFunc(ctx.Assets, func(a Asset) bool {
+	i := slices.IndexFunc(ctx.Assets, func(a *Asset) bool {
 		return a.Id == asset.Id
 	})
 
@@ -73,7 +73,7 @@ func updateAssets(ctx *Context, asset Asset) error {
 
 // ValidateContext verifies that the Context is in a valid state.
 func (ctx *Context) ValidateContext() error {
-	i := slices.IndexFunc(ctx.Assets, func(a Asset) bool {
+	i := slices.IndexFunc(ctx.Assets, func(a *Asset) bool {
 		return a.UnitPrice.Cmp(big.NewRat(0, 1)) == -1
 	})
 

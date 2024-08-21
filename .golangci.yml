@@ -2,7 +2,7 @@ linters:
   enable:
     - errcheck        # checks for unchecked errors in go programs
     - errname         # checks that sentinel errors are prefixed with the `Err` and error types are suffixed with the `Error`
-    - exportloopref   # checks for pointers to enclosing loop variables
+    - copyloopvar     # checks for pointers to enclosing loop variables
     - gochecknoinits  # checks that no init functions are present in Go code
     - gosimple        # simplifies code
     - govet           # checks for suspicious constructs
