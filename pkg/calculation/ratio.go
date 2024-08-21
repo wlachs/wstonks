@@ -1,6 +1,7 @@
 package calculation
 
 import (
+	"fmt"
 	"github.com/wlachs/wstonks/pkg/asset"
 	"math/big"
 )
@@ -17,6 +18,11 @@ func (ctx *Context) GetAssetRatio(assets []*asset.Asset) (map[*asset.Asset]*big.
 	worthOfAssets, err := ctx.GetAssetWorthOfAssets(assets)
 	if err != nil {
 		return nil, err
+	}
+
+	/* Check asset worth sum to avoid division with zero */
+	if worthOfAssets.Cmp(big.NewRat(0, 1)) == 0 {
+		return nil, fmt.Errorf("sum of asset worth is zero")
 	}
 
 	m := map[*asset.Asset]*big.Rat{}
