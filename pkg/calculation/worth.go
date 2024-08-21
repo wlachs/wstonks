@@ -10,7 +10,6 @@ import (
 // retrieved from the asset.Context and maps the quantities to their corresponding current worth.
 func (ctx *Context) GetAssetWorthMap() (map[*asset.Asset]*big.Rat, error) {
 	assetCtx := ctx.AssetContext
-
 	if assetCtx == nil {
 		return nil, fmt.Errorf("asset context is missing")
 	}
@@ -77,13 +76,18 @@ func (ctx *Context) GetAssetKeyWorthMapOfKeys(keys []string) (map[string]*big.Ra
 // retrieved from the asset.Context.
 func (ctx *Context) GetAssetWorth() (*big.Rat, error) {
 	assetCtx := ctx.AssetContext
-	txCtx := ctx.TransactionContext
-
-	if assetCtx == nil || txCtx == nil {
-		return nil, fmt.Errorf("asset or transaction context is missing")
+	if assetCtx == nil {
+		return nil, fmt.Errorf("asset context is missing")
 	}
 
-	m, err := ctx.GetAssetWorthMap()
+	assets := assetCtx.Assets
+	return ctx.GetAssetWorthOfAssets(assets)
+}
+
+// GetAssetWorthOfAssets calculates the current worth of all quantities contained in the transaction.Context of the given asset slice with
+// the help of the live asset values retrieved from the asset.Context.
+func (ctx *Context) GetAssetWorthOfAssets(assets []*asset.Asset) (*big.Rat, error) {
+	m, err := ctx.GetAssetWorthMapOfAssets(assets)
 	if err != nil {
 		return nil, err
 	}
