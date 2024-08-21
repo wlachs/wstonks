@@ -5,7 +5,7 @@ func (ctx *Context) GetAssetKeyMap() map[string]*Asset {
 	m := map[string]*Asset{}
 
 	for i := range ctx.Assets {
-		m[ctx.Assets[i].Id] = &ctx.Assets[i]
+		m[ctx.Assets[i].Id] = ctx.Assets[i]
 	}
 
 	return m
