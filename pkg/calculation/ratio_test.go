@@ -54,8 +54,8 @@ func (suite *ratioTestSuite) TestContext_GetAssetRatio() {
 	keys := suite.ctx.AssetContext.GetAssetKeyMap()
 
 	assert.NoError(suite.T(), err, "should not return error")
-	assert.Equal(suite.T(), 0, m[keys["A"]].Cmp(big.NewRat(1785390000000000, 1855638572748941)), "asset ratio should match")
-	assert.Equal(suite.T(), 0, m[keys["B"]].Cmp(big.NewRat(70248572748941, 1855638572748941)), "asset ratio should match")
+	assert.Equal(suite.T(), big.NewRat(1785390000000000, 1855638572748941), m[keys["A"]], "asset ratio should match")
+	assert.Equal(suite.T(), big.NewRat(70248572748941, 1855638572748941), m[keys["B"]], "asset ratio should match")
 }
 
 // TestContext_GetAssetRatio runs the smoke test and makes sure that the sum of asset ratios add up to 1.
