@@ -80,3 +80,19 @@ func (suite *distributionTestSuite) TestGetDistributionAdjustmentMapWithoutSelli
 	assert.Nil(suite.T(), res[assets["A"]], "should be nil")
 	assert.Equal(suite.T(), big.NewRat(7402017845259531, 10000000000000), res[assets["B"]], "should match calculated value")
 }
+
+// TestGetDistributionAdjustmentMapWithoutSelling_With_Zero_Portfolio_Worth tests calculating how much of the individual assets to buy to
+// achieve the desired asset distribution without prior transactions in the system.
+func (suite *distributionTestSuite) TestGetDistributionAdjustmentMapWithoutSelling_With_Zero_Portfolio_Worth() {
+	suite.ctx.TransactionContext = &transaction.Context{}
+
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+	dist := map[*asset.Asset]*big.Rat{
+		assets["A"]: big.NewRat(2, 3),
+		assets["B"]: big.NewRat(1, 3),
+	}
+
+	_, err := suite.ctx.GetDistributionAdjustmentMapWithoutSelling(dist)
+
+	assert.EqualError(suite.T(), err, "sum of asset worth is zero", "should throw an error if assets have no worth")
+}

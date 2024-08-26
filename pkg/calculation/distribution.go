@@ -71,6 +71,10 @@ func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[
 		}
 	}
 
+	if globalWorth.Cmp(big.NewRat(0, 1)) == 0 {
+		return nil, fmt.Errorf("sum of asset worth is zero")
+	}
+
 	var bestPerformer *asset.Asset
 	var bestPerformance *big.Rat
 	for a, d := range distribution {
