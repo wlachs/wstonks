@@ -96,3 +96,39 @@ func (suite *distributionTestSuite) TestGetDistributionAdjustmentMapWithoutSelli
 
 	assert.EqualError(suite.T(), err, "sum of asset worth is zero", "should throw an error if assets have no worth")
 }
+
+// TestGetDistributionAdjustmentMapWithoutSellingWithBudget_Enough tests calculating how much of the individual assets to buy to achieve the
+// desired asset distribution. Always use the whole budget.
+func (suite *distributionTestSuite) TestGetDistributionAdjustmentMapWithoutSellingWithBudget_Enough() {
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+	dist := map[*asset.Asset]*big.Rat{
+		assets["A"]: big.NewRat(2, 3),
+		assets["B"]: big.NewRat(1, 3),
+	}
+	budget := big.NewRat(1000, 1)
+
+	res, factor, err := suite.ctx.GetDistributionAdjustmentMapWithoutSellingWithBudget(dist, budget)
+
+	assert.NoError(suite.T(), err, "should return no error")
+	assert.Equal(suite.T(), big.NewRat(1, 1), factor, "should match calculated value")
+	assert.Equal(suite.T(), big.NewRat(2597982154740469, 15000000000000), res[assets["A"]], "should match calculated value")
+	assert.Equal(suite.T(), big.NewRat(12402017845259531, 15000000000000), res[assets["B"]], "should match calculated value")
+}
+
+// TestGetDistributionAdjustmentMapWithoutSellingWithBudget_Not_Enough tests calculating how much of the individual assets to buy to achieve
+// the desired asset distribution. Scale down the investment if the budget is not sufficient.
+func (suite *distributionTestSuite) TestGetDistributionAdjustmentMapWithoutSellingWithBudget_Not_Enough() {
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+	dist := map[*asset.Asset]*big.Rat{
+		assets["A"]: big.NewRat(2, 3),
+		assets["B"]: big.NewRat(1, 3),
+	}
+	budget := big.NewRat(100, 1)
+
+	res, factor, err := suite.ctx.GetDistributionAdjustmentMapWithoutSellingWithBudget(dist, budget)
+
+	assert.NoError(suite.T(), err, "should return no error")
+	assert.Nil(suite.T(), res[assets["A"]], "should be nil")
+	assert.Equal(suite.T(), big.NewRat(7402017845259531, 1000000000000000), factor, "should match calculated value")
+	assert.Equal(suite.T(), budget, res[assets["B"]], "should match calculated value")
+}
