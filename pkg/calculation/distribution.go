@@ -93,11 +93,7 @@ func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[
 		}
 	}
 
-	budget, ok := worthMap[bestPerformer]
-	if !ok {
-		budget = big.NewRat(0, 1)
-	}
-
+	budget := worthMap[bestPerformer]
 	budget.Quo(budget, distribution[bestPerformer])
 	budget.Sub(budget, globalWorth)
 
