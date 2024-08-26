@@ -6,7 +6,7 @@ import (
 	"math/big"
 )
 
-// GetDistributionAdjustmentMapWithBudget calculates how many quantities have to be bough with the given budget in order to reach the given distribution.
+// GetDistributionAdjustmentMapWithBudget calculates the asset value to be bough with the given budget in order to reach the desired distribution.
 func (ctx *Context) GetDistributionAdjustmentMapWithBudget(distribution map[*asset.Asset]*big.Rat, budget *big.Rat) (map[*asset.Asset]*big.Rat, error) {
 	err := validateDistribution(distribution)
 	if err != nil {
@@ -46,7 +46,7 @@ func (ctx *Context) GetDistributionAdjustmentMapWithBudget(distribution map[*ass
 	return m, nil
 }
 
-// GetDistributionAdjustmentMapWithoutSelling calculates how many quantities have to be bough in order to reach the given distribution.
+// GetDistributionAdjustmentMapWithoutSelling calculates the asset value to be bough in order to reach the desired distribution.
 func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[*asset.Asset]*big.Rat) (map[*asset.Asset]*big.Rat, error) {
 	err := validateDistribution(distribution)
 	if err != nil {
@@ -71,6 +71,10 @@ func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[
 		}
 	}
 
+	if globalWorth.Cmp(big.NewRat(0, 1)) == 0 {
+		return nil, fmt.Errorf("sum of asset worth is zero")
+	}
+
 	var bestPerformer *asset.Asset
 	var bestPerformance *big.Rat
 	for a, d := range distribution {
@@ -89,11 +93,7 @@ func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[
 		}
 	}
 
-	budget, ok := worthMap[bestPerformer]
-	if !ok {
-		budget = big.NewRat(0, 1)
-	}
-
+	budget := worthMap[bestPerformer]
 	budget.Quo(budget, distribution[bestPerformer])
 	budget.Sub(budget, globalWorth)
 
@@ -103,6 +103,40 @@ func (ctx *Context) GetDistributionAdjustmentMapWithoutSelling(distribution map[
 	}
 
 	return withBudget, nil
+}
+
+// GetDistributionAdjustmentMapWithoutSellingWithBudget calculates the asset value to be bough with the given budget in order to reach the
+// desired distribution. If the required purchasing power is more than the budget, scale down the adjustment map such that the desired
+// outcome can be reached over time. Returns the asset map, the budget factor and - if there are any - the errors.
+func (ctx *Context) GetDistributionAdjustmentMapWithoutSellingWithBudget(distribution map[*asset.Asset]*big.Rat, budget *big.Rat) (map[*asset.Asset]*big.Rat, *big.Rat, error) {
+	m, err := ctx.GetDistributionAdjustmentMapWithoutSelling(distribution)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	purchasingPowerRequired := big.NewRat(0, 1)
+	for _, toBuy := range m {
+		purchasingPowerRequired.Add(purchasingPowerRequired, toBuy)
+	}
+
+	zero := big.NewRat(0, 1)
+	multiplier := big.NewRat(1, 1)
+
+	/* If the required purchasing power is less than the budget, increase the investment volume to use the whole budget. */
+	if purchasingPowerRequired.Cmp(budget) <= 0 {
+		mm, e := ctx.GetDistributionAdjustmentMapWithBudget(distribution, budget)
+		return mm, multiplier, e
+
+	} else if budget.Cmp(zero) == 0 {
+		return nil, nil, fmt.Errorf("budget is zero")
+	}
+
+	multiplier.Quo(purchasingPowerRequired, budget)
+	for _, assetsToBuy := range m {
+		assetsToBuy.Quo(assetsToBuy, multiplier)
+	}
+
+	return m, multiplier, nil
 }
 
 // validateDistribution makes sure that the overall distribution sum is not more than 1.
