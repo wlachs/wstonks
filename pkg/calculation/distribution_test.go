@@ -48,9 +48,9 @@ func (suite *distributionTestSuite) SetupTest() {
 	}
 }
 
-// TestDistributionAdjustmentMapWithBudget tests calculating how much of the individual assets to buy / sell to achieve the
+// TestGetDistributionAdjustmentMapWithBudget tests calculating how much of the individual assets to buy / sell to achieve the
 // desired asset distribution. The budget parameter measures the newly introduced capital to the system.
-func (suite *distributionTestSuite) TestDistributionAdjustmentMapWithBudget() {
+func (suite *distributionTestSuite) TestGetDistributionAdjustmentMapWithBudget() {
 	assets := suite.ctx.AssetContext.GetAssetKeyMap()
 	dist := map[*asset.Asset]*big.Rat{
 		assets["A"]: big.NewRat(2, 3),
@@ -63,4 +63,20 @@ func (suite *distributionTestSuite) TestDistributionAdjustmentMapWithBudget() {
 	assert.NoError(suite.T(), err, "should return no error")
 	assert.Equal(suite.T(), big.NewRat(2597982154740469, 15000000000000), res[assets["A"]], "should match calculated value")
 	assert.Equal(suite.T(), big.NewRat(12402017845259531, 15000000000000), res[assets["B"]], "should match calculated value")
+}
+
+// TestGetDistributionAdjustmentMapWithoutSelling tests calculating how much of the individual assets to buy to achieve the
+// desired asset distribution. There is no budget set, the necessary amount is determined in the calculation.
+func (suite *distributionTestSuite) TestGetDistributionAdjustmentMapWithoutSelling() {
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+	dist := map[*asset.Asset]*big.Rat{
+		assets["A"]: big.NewRat(2, 3),
+		assets["B"]: big.NewRat(1, 3),
+	}
+
+	res, err := suite.ctx.GetDistributionAdjustmentMapWithoutSelling(dist)
+
+	assert.NoError(suite.T(), err, "should return no error")
+	assert.Nil(suite.T(), res[assets["A"]], "should be nil")
+	assert.Equal(suite.T(), big.NewRat(7402017845259531, 10000000000000), res[assets["B"]], "should match calculated value")
 }
