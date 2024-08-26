@@ -8,6 +8,7 @@ import (
 	"github.com/wlachs/wstonks/pkg/calculation"
 	"github.com/wlachs/wstonks/pkg/transaction"
 	txio "github.com/wlachs/wstonks/pkg/transaction/io"
+	"math/big"
 	"testing"
 )
 
@@ -45,4 +46,21 @@ func (suite *distributionTestSuite) SetupTest() {
 		AssetContext:       &assetCtx,
 		TransactionContext: &txCtx,
 	}
+}
+
+// TestDistributionAdjustmentMapWithBudget tests calculating how much of the individual assets to buy / sell to achieve the
+// desired asset distribution. The budget parameter measures the newly introduced capital to the system.
+func (suite *distributionTestSuite) TestDistributionAdjustmentMapWithBudget() {
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+	dist := map[*asset.Asset]*big.Rat{
+		assets["A"]: big.NewRat(2, 3),
+		assets["B"]: big.NewRat(1, 3),
+	}
+	budget := big.NewRat(1000, 1)
+
+	res, err := suite.ctx.GetDistributionAdjustmentMapWithBudget(dist, budget)
+
+	assert.NoError(suite.T(), err, "should return no error")
+	assert.Equal(suite.T(), big.NewRat(2597982154740469, 15000000000000), res[assets["A"]], "should match calculated value")
+	assert.Equal(suite.T(), big.NewRat(12402017845259531, 15000000000000), res[assets["B"]], "should match calculated value")
 }
