@@ -39,9 +39,9 @@ func (ctx *Context) GetSalesForReturnForAssets(r *big.Rat, assets []*asset.Asset
 
 	if r.Cmp(zero) < 0 {
 		return ctx.getSalesForLossWithAssets(rr, assets, losses)
-	} else {
-		return ctx.getSalesForProfitWithAssets(rr, assets, profits)
 	}
+
+	return ctx.getSalesForProfitWithAssets(rr, assets, profits)
 }
 
 // getSalesForProfitWithAssets calculates how much of the given assets have to be sold to get the given profit
@@ -49,6 +49,7 @@ func (ctx *Context) getSalesForProfitWithAssets(r *big.Rat, assets []*asset.Asse
 	sort.Slice(assets, func(i, j int) bool {
 		return profits[assets[i]].Cmp(profits[assets[j]]) > 0
 	})
+
 	return ctx.sellForProfit(r, assets, profits)
 }
 
@@ -83,25 +84,27 @@ func (ctx *Context) sellForProfit(r *big.Rat, assets []*asset.Asset, profits map
 			m[a].Add(m[a], tmp)
 			return m, nil
 
-		} else {
-			diff.Add(diff, ret)
-			m[a].Add(m[a], position.Quantity)
-
-			if d.Cmp(maxProfit) == 0 {
-				r.Sub(r, d)
-
-				rest, e := ctx.sellForProfit(r, assets, profits)
-				if e != nil {
-					return nil, e
-				}
-
-				for k, v := range rest {
-					m[k] = v
-				}
-
-				return m, nil
-			}
 		}
+
+		diff.Add(diff, ret)
+		m[a].Add(m[a], position.Quantity)
+
+		if d.Cmp(maxProfit) != 0 {
+			continue
+		}
+
+		r.Sub(r, d)
+
+		rest, e := ctx.sellForProfit(r, assets, profits)
+		if e != nil {
+			return nil, e
+		}
+
+		for k, v := range rest {
+			m[k] = v
+		}
+
+		return m, nil
 	}
 
 	return nil, fmt.Errorf("not enough positions to realize the profit")
@@ -112,6 +115,7 @@ func (ctx *Context) getSalesForLossWithAssets(r *big.Rat, assets []*asset.Asset,
 	sort.Slice(assets, func(i, j int) bool {
 		return losses[assets[i]].Cmp(losses[assets[j]]) < 0
 	})
+
 	return ctx.sellForLoss(r, assets, losses)
 }
 
@@ -145,26 +149,27 @@ func (ctx *Context) sellForLoss(r *big.Rat, assets []*asset.Asset, losses map[*a
 
 			m[a].Add(m[a], tmp)
 			return m, nil
-
-		} else {
-			diff.Add(diff, ret)
-			m[a].Add(m[a], position.Quantity)
-
-			if d.Cmp(maxLoss) == 0 {
-				r.Sub(r, d)
-
-				rest, e := ctx.sellForLoss(r, assets, losses)
-				if e != nil {
-					return nil, e
-				}
-
-				for k, v := range rest {
-					m[k] = v
-				}
-
-				return m, nil
-			}
 		}
+
+		diff.Add(diff, ret)
+		m[a].Add(m[a], position.Quantity)
+
+		if d.Cmp(maxLoss) != 0 {
+			continue
+		}
+
+		r.Sub(r, d)
+
+		rest, e := ctx.sellForLoss(r, assets, losses)
+		if e != nil {
+			return nil, e
+		}
+
+		for k, v := range rest {
+			m[k] = v
+		}
+
+		return m, nil
 	}
 
 	return nil, fmt.Errorf("not enough positions to realize the losses")
@@ -184,11 +189,13 @@ func (ctx *Context) GetMaxProfitAndLoss() (map[*asset.Asset]*big.Rat, map[*asset
 func (ctx *Context) GetMaxProfitAndLossForAssets(assets []*asset.Asset) (map[*asset.Asset]*big.Rat, map[*asset.Asset]*big.Rat, error) {
 	profit := map[*asset.Asset]*big.Rat{}
 	loss := map[*asset.Asset]*big.Rat{}
+
 	for i := range assets {
 		p, l, err := ctx.GetMaxProfitAndLossForAsset(assets[i])
 		if err != nil {
 			return nil, nil, err
 		}
+
 		profit[assets[i]] = p
 		loss[assets[i]] = l
 	}
