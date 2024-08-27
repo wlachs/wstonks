@@ -20,11 +20,13 @@ func (ctx *Context) GetSalesForReturn(r *big.Rat) (map[*asset.Asset]*big.Rat, er
 		return nil, fmt.Errorf("asset context not set")
 	}
 
-	return ctx.GetSalesForReturnForAssets(r, ctx.AssetContext.Assets)
+	return ctx.GetSalesForReturnForAssets(r, ctx.AssetContext.Assets, true)
 }
 
 // GetSalesForReturnForAssets calculates how much and which positions should be sold in order to realize the given return.
-func (ctx *Context) GetSalesForReturnForAssets(r *big.Rat, assets []*asset.Asset) (map[*asset.Asset]*big.Rat, error) {
+// The last boolean flag can be used to reorder assets such that the desired profit / loss is realized with the fewest transactions.
+// If the flag is set to false, the initial asset slice is preserved and assets are sold in that order.
+func (ctx *Context) GetSalesForReturnForAssets(r *big.Rat, assets []*asset.Asset, doOptimize bool) (map[*asset.Asset]*big.Rat, error) {
 	if r == nil {
 		return nil, fmt.Errorf("return shouldn't be nil")
 	}
@@ -38,17 +40,19 @@ func (ctx *Context) GetSalesForReturnForAssets(r *big.Rat, assets []*asset.Asset
 	rr := big.NewRat(0, 1).Set(r)
 
 	if r.Cmp(zero) < 0 {
-		return ctx.getSalesForLossWithAssets(rr, assets, losses)
+		return ctx.getSalesForLossWithAssets(rr, assets, losses, doOptimize)
 	}
 
-	return ctx.getSalesForProfitWithAssets(rr, assets, profits)
+	return ctx.getSalesForProfitWithAssets(rr, assets, profits, doOptimize)
 }
 
 // getSalesForProfitWithAssets calculates how much of the given assets have to be sold to get the given profit
-func (ctx *Context) getSalesForProfitWithAssets(r *big.Rat, assets []*asset.Asset, profits map[*asset.Asset]*big.Rat) (map[*asset.Asset]*big.Rat, error) {
-	sort.Slice(assets, func(i, j int) bool {
-		return profits[assets[i]].Cmp(profits[assets[j]]) > 0
-	})
+func (ctx *Context) getSalesForProfitWithAssets(r *big.Rat, assets []*asset.Asset, profits map[*asset.Asset]*big.Rat, doOptimize bool) (map[*asset.Asset]*big.Rat, error) {
+	if doOptimize {
+		sort.Slice(assets, func(i, j int) bool {
+			return profits[assets[i]].Cmp(profits[assets[j]]) > 0
+		})
+	}
 
 	return ctx.sellForProfit(r, assets, profits)
 }
@@ -67,6 +71,10 @@ func (ctx *Context) sellForProfit(r *big.Rat, assets []*asset.Asset, profits map
 	}
 
 	maxProfit := profits[a]
+	if maxProfit.Cmp(big.NewRat(0, 1)) == 0 {
+		return ctx.sellForProfit(r, assets, profits)
+	}
+
 	m := map[*asset.Asset]*big.Rat{}
 	m[a] = big.NewRat(0, 1)
 	diff := big.NewRat(0, 1)
@@ -111,10 +119,12 @@ func (ctx *Context) sellForProfit(r *big.Rat, assets []*asset.Asset, profits map
 }
 
 // getSalesForLossWithAssets calculates how much of the given assets have to be sold to get the given loss
-func (ctx *Context) getSalesForLossWithAssets(r *big.Rat, assets []*asset.Asset, losses map[*asset.Asset]*big.Rat) (map[*asset.Asset]*big.Rat, error) {
-	sort.Slice(assets, func(i, j int) bool {
-		return losses[assets[i]].Cmp(losses[assets[j]]) < 0
-	})
+func (ctx *Context) getSalesForLossWithAssets(r *big.Rat, assets []*asset.Asset, losses map[*asset.Asset]*big.Rat, doOptimize bool) (map[*asset.Asset]*big.Rat, error) {
+	if doOptimize {
+		sort.Slice(assets, func(i, j int) bool {
+			return losses[assets[i]].Cmp(losses[assets[j]]) < 0
+		})
+	}
 
 	return ctx.sellForLoss(r, assets, losses)
 }
@@ -133,6 +143,10 @@ func (ctx *Context) sellForLoss(r *big.Rat, assets []*asset.Asset, losses map[*a
 	}
 
 	maxLoss := losses[a]
+	if maxLoss.Cmp(big.NewRat(0, 1)) == 0 {
+		return ctx.sellForLoss(r, assets, losses)
+	}
+
 	m := map[*asset.Asset]*big.Rat{}
 	m[a] = big.NewRat(0, 1)
 	diff := big.NewRat(0, 1)
