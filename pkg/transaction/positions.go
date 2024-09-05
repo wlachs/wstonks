@@ -8,8 +8,8 @@ import (
 
 // GetReturnForUnitPrice calculates the difference between the initial value of the position and its current value.
 func (p Position) GetReturnForUnitPrice(unitPrice *big.Rat) *big.Rat {
-	diff := big.NewRat(0, 1).Set(unitPrice)
-	diff.Sub(diff, p.UnitPrice)
+	diff := big.NewRat(0, 1)
+	diff.Sub(unitPrice, p.UnitPrice)
 	diff.Mul(diff, p.Quantity)
 
 	return diff
@@ -56,7 +56,7 @@ func (ctx *Context) GetAssetPositions(a *TxAsset) []Position {
 
 	for _, transaction := range a.Transactions {
 		if transaction.Type == BUY {
-			p = append(p, transaction.Position)
+			p = append(p, transaction.Position.Clone())
 		} else if transaction.Type == SELL {
 			p, _ = subtractAssetPosition(p, transaction.Position.Clone())
 		}
@@ -73,8 +73,7 @@ func subtractAssetPosition(p []Position, position Position) ([]Position, []*big.
 	}
 	oldestPosition := p[0]
 
-	realized := big.NewRat(0, 1).Set(position.UnitPrice)
-	realized.Sub(realized, oldestPosition.UnitPrice)
+	realized := big.NewRat(0, 1).Sub(position.UnitPrice, oldestPosition.UnitPrice)
 
 	if oldestPosition.Quantity.Cmp(position.Quantity) > 0 {
 		oldestPosition.Quantity.Sub(oldestPosition.Quantity, position.Quantity)

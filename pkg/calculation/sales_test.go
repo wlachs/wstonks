@@ -27,7 +27,7 @@ func TestSalesTestSuite(t *testing.T) {
 // SetupTest runs before each test case.
 func (suite *salesTestSuite) SetupTest() {
 	txCtx := transaction.Context{}
-	txCsv := txio.TxCsvLoader{Path: "../../test/data/io/transactions/smoke.csv"}
+	txCsv := txio.TxCsvLoader{Path: "../../test/data/io/transactions/smoke_sales.csv"}
 	err := txCsv.Load(&txCtx)
 
 	if err != nil {
@@ -35,7 +35,7 @@ func (suite *salesTestSuite) SetupTest() {
 	}
 
 	assetCtx := asset.Context{}
-	assetCsv := assetio.LiveAssetCsvLoader{Path: "../../test/data/io/assets/smoke_with_loss.csv"}
+	assetCsv := assetio.LiveAssetCsvLoader{Path: "../../test/data/io/assets/smoke_sales.csv"}
 	err = assetCsv.Load(&assetCtx)
 
 	if err != nil {
@@ -57,6 +57,19 @@ func (suite *salesTestSuite) TestGetSalesForReturn_Profit() {
 	assert.NoError(suite.T(), err, "should not return error")
 	assert.Equal(suite.T(), 1, len(sales), "only one asset should be sold")
 	assert.Equal(suite.T(), big.NewRat(10000, 71234), sales[assets["A"]], "sell volume should match")
+}
+
+// TestGetSalesForReturn_Profit_Complex calculates sales required for the given profit without asset restrictions.
+// This test case requires selling multiple assets.
+func (suite *salesTestSuite) TestGetSalesForReturn_Profit_Complex() {
+	r := big.NewRat(107351, 1000)
+	sales, err := suite.ctx.GetSalesForReturn(r)
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+
+	assert.NoError(suite.T(), err, "should not return error")
+	assert.Equal(suite.T(), 2, len(sales), "only one asset should be sold")
+	assert.Equal(suite.T(), big.NewRat(15, 1), sales[assets["A"]], "sell volume should match")
+	assert.Equal(suite.T(), big.NewRat(1, 1), sales[assets["C"]], "sell volume should match")
 }
 
 // TestGetSalesForReturn_Loss calculates sales required for the given loss without asset restrictions.
