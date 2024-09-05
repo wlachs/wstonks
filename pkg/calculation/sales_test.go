@@ -82,3 +82,16 @@ func (suite *salesTestSuite) TestGetSalesForReturn_Loss() {
 	assert.Equal(suite.T(), 1, len(sales), "only one asset should be sold")
 	assert.Equal(suite.T(), big.NewRat(100000, 891224), sales[assets["B"]], "sell volume should match")
 }
+
+// TestGetSalesForReturn_Loss_Complex calculates sales required for the given loss without asset restrictions.
+// This test case requires selling multiple assets.
+func (suite *salesTestSuite) TestGetSalesForReturn_Loss_Complex() {
+	r := big.NewRat(-160027653319736, 10000000000000)
+	sales, err := suite.ctx.GetSalesForReturn(r)
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+
+	assert.NoError(suite.T(), err, "should not return error")
+	assert.Equal(suite.T(), 2, len(sales), "only one asset should be sold")
+	assert.Equal(suite.T(), big.NewRat(123456789, 100000000), sales[assets["B"]], "sell volume should match")
+	assert.Equal(suite.T(), big.NewRat(1, 1), sales[assets["D"]], "sell volume should match")
+}
