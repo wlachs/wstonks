@@ -35,7 +35,7 @@ func (suite *salesTestSuite) SetupTest() {
 	}
 
 	assetCtx := asset.Context{}
-	assetCsv := assetio.LiveAssetCsvLoader{Path: "../../test/data/io/assets/smoke.csv"}
+	assetCsv := assetio.LiveAssetCsvLoader{Path: "../../test/data/io/assets/smoke_with_loss.csv"}
 	err = assetCsv.Load(&assetCtx)
 
 	if err != nil {
@@ -48,8 +48,8 @@ func (suite *salesTestSuite) SetupTest() {
 	}
 }
 
-// TestGetSalesForReturn calculates sales required for the given profit / loss without asset restrictions.
-func (suite *salesTestSuite) TestGetSalesForReturn() {
+// TestGetSalesForReturn_Profit calculates sales required for the given profit without asset restrictions.
+func (suite *salesTestSuite) TestGetSalesForReturn_Profit() {
 	r := big.NewRat(1, 1)
 	sales, err := suite.ctx.GetSalesForReturn(r)
 	assets := suite.ctx.AssetContext.GetAssetKeyMap()
@@ -57,4 +57,15 @@ func (suite *salesTestSuite) TestGetSalesForReturn() {
 	assert.NoError(suite.T(), err, "should not return error")
 	assert.Equal(suite.T(), 1, len(sales), "only one asset should be sold")
 	assert.Equal(suite.T(), big.NewRat(10000, 71234), sales[assets["A"]], "sell volume should match")
+}
+
+// TestGetSalesForReturn_Loss calculates sales required for the given loss without asset restrictions.
+func (suite *salesTestSuite) TestGetSalesForReturn_Loss() {
+	r := big.NewRat(-1, 1)
+	sales, err := suite.ctx.GetSalesForReturn(r)
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+
+	assert.NoError(suite.T(), err, "should not return error")
+	assert.Equal(suite.T(), 1, len(sales), "only one asset should be sold")
+	assert.Equal(suite.T(), big.NewRat(100000, 891224), sales[assets["B"]], "sell volume should match")
 }
