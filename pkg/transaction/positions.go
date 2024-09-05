@@ -15,6 +15,16 @@ func (p Position) GetReturnForUnitPrice(unitPrice *big.Rat) *big.Rat {
 	return diff
 }
 
+// Clone copies the origin object and creates new *big.Rat instances to simplify recursive calculations.
+func (p Position) Clone() Position {
+	return Position{
+		Asset:     p.Asset,
+		Timestamp: p.Timestamp,
+		UnitPrice: big.NewRat(0, 1).Set(p.UnitPrice),
+		Quantity:  big.NewRat(0, 1).Set(p.Quantity),
+	}
+}
+
 // GetAssetPositionSliceMap maps quantities to a chronologically ordered slice of positions.
 // Transactions are used as a basis: There are two scenarios, BUY and SELL. In case of a BUY transaction, the position is simply added to
 // the end of the position slice. In case of a SELL transaction however, the position quantity is subtracted from the oldest position.
@@ -48,7 +58,7 @@ func (ctx *Context) GetAssetPositions(a *TxAsset) []Position {
 		if transaction.Type == BUY {
 			p = append(p, transaction.Position)
 		} else if transaction.Type == SELL {
-			p, _ = subtractAssetPosition(p, transaction.Position)
+			p, _ = subtractAssetPosition(p, transaction.Position.Clone())
 		}
 	}
 

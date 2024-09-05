@@ -8,6 +8,7 @@ import (
 	"github.com/wlachs/wstonks/pkg/calculation"
 	"github.com/wlachs/wstonks/pkg/transaction"
 	txio "github.com/wlachs/wstonks/pkg/transaction/io"
+	"math/big"
 	"testing"
 )
 
@@ -45,4 +46,15 @@ func (suite *salesTestSuite) SetupTest() {
 		AssetContext:       &assetCtx,
 		TransactionContext: &txCtx,
 	}
+}
+
+// TestGetSalesForReturn calculates sales required for the given profit / loss without asset restrictions.
+func (suite *salesTestSuite) TestGetSalesForReturn() {
+	r := big.NewRat(1, 1)
+	sales, err := suite.ctx.GetSalesForReturn(r)
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+
+	assert.NoError(suite.T(), err, "should not return error")
+	assert.Equal(suite.T(), 1, len(sales), "only one asset should be sold")
+	assert.Equal(suite.T(), big.NewRat(10000, 71234), sales[assets["A"]], "sell volume should match")
 }
