@@ -66,8 +66,10 @@ func (ctx *Context) sellForProfit(r *big.Rat, assets []*asset.Asset, profits map
 	a := assets[0]
 	assets = assets[1:]
 	positions, err := ctx.TransactionContext.GetAssetKeyPositions(a.Id)
+
+	/* If the asset positions cannot be retrieved, use an empty position list as fallback. */
 	if err != nil {
-		return nil, err
+		positions = []transaction.Position{}
 	}
 
 	maxProfit := profits[a]
