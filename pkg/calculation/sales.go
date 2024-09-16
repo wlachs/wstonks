@@ -240,9 +240,9 @@ func (ctx *Context) GetMaxProfitAndLossForAsset(a *asset.Asset) (*big.Rat, *big.
 	for _, position := range p {
 		diff.Add(diff, position.GetReturnForUnitPrice(a.UnitPrice))
 		if maxProfit.Cmp(diff) < 0 {
-			maxProfit = diff
+			maxProfit.Set(diff)
 		} else if maxLoss.Cmp(diff) > 0 {
-			maxLoss = diff
+			maxLoss.Set(diff)
 		}
 	}
 
