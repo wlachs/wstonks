@@ -62,14 +62,24 @@ func (suite *salesTestSuite) TestGetSalesForReturn_Profit() {
 // TestGetSalesForReturn_Profit_Complex calculates sales required for the given profit without asset restrictions.
 // This test case requires selling multiple assets.
 func (suite *salesTestSuite) TestGetSalesForReturn_Profit_Complex() {
-	r := big.NewRat(107651, 1000)
+	r := big.NewRat(111651, 1000)
 	sales, err := suite.ctx.GetSalesForReturn(r)
 	assets := suite.ctx.AssetContext.GetAssetKeyMap()
 
 	assert.NoError(suite.T(), err, "should not return error")
-	assert.Equal(suite.T(), 2, len(sales), "only one asset should be sold")
+	assert.Equal(suite.T(), 3, len(sales), "three assets should be sold")
 	assert.Equal(suite.T(), big.NewRat(15, 1), sales[assets["A"]], "sell volume should match")
 	assert.Equal(suite.T(), big.NewRat(2, 1), sales[assets["C"]], "sell volume should match")
+	assert.Equal(suite.T(), big.NewRat(1, 1), sales[assets["E"]], "sell volume should match")
+}
+
+// TestGetSalesForReturn_Profit_Too_Much calculates sales required for the given profit without asset restrictions.
+// This test case tries to calculate an impossible return.
+func (suite *salesTestSuite) TestGetSalesForReturn_Profit_Too_Much() {
+	r := big.NewRat(113652, 1000)
+	_, err := suite.ctx.GetSalesForReturn(r)
+
+	assert.EqualError(suite.T(), err, "not enough assets to sell", "should return error")
 }
 
 // TestGetSalesForReturn_Loss calculates sales required for the given loss without asset restrictions.
@@ -91,7 +101,50 @@ func (suite *salesTestSuite) TestGetSalesForReturn_Loss_Complex() {
 	assets := suite.ctx.AssetContext.GetAssetKeyMap()
 
 	assert.NoError(suite.T(), err, "should not return error")
-	assert.Equal(suite.T(), 2, len(sales), "only one asset should be sold")
+	assert.Equal(suite.T(), 2, len(sales), "two assets should be sold")
 	assert.Equal(suite.T(), big.NewRat(123456789, 100000000), sales[assets["B"]], "sell volume should match")
 	assert.Equal(suite.T(), big.NewRat(2, 1), sales[assets["D"]], "sell volume should match")
+}
+
+// TestGetSalesForReturn_Loss_Too_Much calculates sales required for the given loss without asset restrictions.
+// This test case tries to calculate an impossible return.
+func (suite *salesTestSuite) TestGetSalesForReturn_Loss_Too_Much() {
+	r := big.NewRat(-210027653319737, 10000000000000)
+	_, err := suite.ctx.GetSalesForReturn(r)
+
+	assert.EqualError(suite.T(), err, "not enough assets to sell", "should return error")
+}
+
+// TestGetMaxProfitAndLoss calculates the highest possible profit and loss based on the currently held assets.
+func (suite *salesTestSuite) TestGetMaxProfitAndLoss() {
+	profit, loss, err := suite.ctx.GetMaxProfitAndLoss()
+	assets := suite.ctx.AssetContext.GetAssetKeyMap()
+
+	assert.NoError(suite.T(), err, "should not return error")
+
+	profitMap := map[string]*big.Rat{
+		"A": big.NewRat(106851, 1000),
+		"B": big.NewRat(0, 1),
+		"C": big.NewRat(8, 10),
+		"D": big.NewRat(0, 1),
+		"E": big.NewRat(4, 1),
+		"F": big.NewRat(0, 1),
+	}
+
+	lossMap := map[string]*big.Rat{
+		"A": big.NewRat(0, 1),
+		"B": big.NewRat(-13753456664967, 1250000000000),
+		"C": big.NewRat(0, 1),
+		"D": big.NewRat(-8, 1),
+		"E": big.NewRat(-2, 1),
+		"F": big.NewRat(0, 1),
+	}
+
+	for a, p := range profitMap {
+		assert.Equal(suite.T(), p, profit[assets[a]], "profit should match")
+	}
+
+	for a, l := range lossMap {
+		assert.Equal(suite.T(), l, loss[assets[a]], "loss should match")
+	}
 }
