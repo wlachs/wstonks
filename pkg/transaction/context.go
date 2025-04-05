@@ -79,7 +79,7 @@ func updateAssets(ctx *Context, transaction *Tx) error {
 // updateTransactions adds the context to the context history of the Context.
 func updateTransactions(ctx *Context, transaction *Tx) error {
 	if transaction.Asset == nil {
-		return fmt.Errorf("missing asset for transaction %v\n", transaction)
+		return fmt.Errorf("missing asset for transaction %v", transaction)
 	}
 
 	// update transaction asset pointer
