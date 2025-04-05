@@ -55,10 +55,12 @@ func (ctx *Context) GetAssetPositions(a *TxAsset) []Position {
 	})
 
 	for _, transaction := range a.Transactions {
-		if transaction.Type == BUY {
-			p = append(p, transaction.Position.Clone())
-		} else if transaction.Type == SELL {
-			p, _ = subtractAssetPosition(p, transaction.Position.Clone())
+		switch transaction.Type {
+		case BUY:
+			p = append(p, transaction.Clone())
+		case SELL:
+			p, _ = subtractAssetPosition(p, transaction.Clone())
+		default:
 		}
 	}
 

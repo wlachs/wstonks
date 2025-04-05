@@ -80,7 +80,7 @@ func (ctx *Context) ValidateContext() error {
 	if i != -1 {
 		asset := ctx.Assets[i]
 		unitPrice, _ := asset.UnitPrice.Float32()
-		return fmt.Errorf("negative asset price %s: %f < 0\n", asset.Id, unitPrice)
+		return fmt.Errorf("negative asset price %s: %f < 0", asset.Id, unitPrice)
 	}
 
 	return nil
